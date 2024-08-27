@@ -8,11 +8,17 @@ public class AgentCommunication : MonoBehaviour
     IEnumerator SendActionToAgent(string action)
     {
         string url = "http://localhost:5000/api/agent/action";
-        WWWForm form = new WWWForm();
-        form.AddField("action", action);
+        string jsonPayload = "{\"action\": \"" + action + "\"}";
 
-        using (UnityWebRequest www = UnityWebRequest.Post(url, form))
+        // Crea una richiesta POST con JSON
+        using (UnityWebRequest www = new UnityWebRequest(url, "POST"))
         {
+            byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(jsonPayload);
+            www.uploadHandler = new UploadHandlerRaw(jsonToSend);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+
+            // Invia la richiesta e aspetta la risposta
             yield return www.SendWebRequest();
 
             if (www.result == UnityWebRequest.Result.Success)
@@ -30,5 +36,6 @@ public class AgentCommunication : MonoBehaviour
     {
         StartCoroutine(SendActionToAgent(action));
     }
+
 }
 
