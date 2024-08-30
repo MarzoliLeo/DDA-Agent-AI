@@ -66,7 +66,7 @@ public abstract class Objective : MonoBehaviour
         return total;
     }
 
-    protected abstract void ReachCheckpoint(int remaining);
+    public abstract void ReachCheckpoint(int remaining);
     
     void OnEnable()
     {

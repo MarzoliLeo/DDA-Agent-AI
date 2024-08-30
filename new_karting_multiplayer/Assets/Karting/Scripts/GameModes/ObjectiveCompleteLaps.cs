@@ -34,7 +34,7 @@ public class ObjectiveCompleteLaps : Objective
         Register();
     }
 
-    protected override void ReachCheckpoint(int remaining)
+    public override void ReachCheckpoint(int remaining)
     {
 
         if (isCompleted)
