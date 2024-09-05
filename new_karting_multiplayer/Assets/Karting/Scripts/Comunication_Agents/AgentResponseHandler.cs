@@ -4,7 +4,7 @@ using UnityEngine.Networking;
 
 public class AgentResponseHandler : MonoBehaviour
 {
-    private string agentUrl = "http://localhost:5000/api/agent/response";
+    private string agentUrl = "http://localhost:5000/api/agent/checkpoints";
 
     void Start()
     {
