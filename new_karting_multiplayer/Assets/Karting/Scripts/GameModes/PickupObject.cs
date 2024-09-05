@@ -16,11 +16,14 @@ public class PickupObject : TargetObject
     [Tooltip("Destroy this gameobject after collectDuration seconds")]
     public float collectDuration = 0f;
 
+    private CheckpointTracker checkpointTracker;
+
+
     void Start() {
         Register();
     }
 
-    void OnCollect()
+    void OnCollect(GameObject player)
     {
         if (CollectSound)
         {
@@ -32,10 +35,20 @@ public class PickupObject : TargetObject
             var vfx = Instantiate(spawnPrefabOnPickup, CollectVFXSpawnPoint.position, Quaternion.identity);
             Destroy(vfx, destroySpawnPrefabDelay);
         }
-               
+    
         Objective.OnUnregisterPickup(this);
 
         TimeManager.OnAdjustTime(TimeGained);
+
+        
+        checkpointTracker = FindObjectOfType<CheckpointTracker>();
+
+        if (checkpointTracker == null)
+        {
+            Debug.LogError("CheckpointTracker not found in the scene.");
+        }
+
+        checkpointTracker.OnCheckpointCollected(player);
 
         Destroy(gameObject, collectDuration);
     }
@@ -44,7 +57,7 @@ public class PickupObject : TargetObject
     {
         if ((layerMask.value & 1 << other.gameObject.layer) > 0 && other.gameObject.CompareTag("Player"))
         {
-            OnCollect();
+            OnCollect(other.gameObject);
         }
     }
 }

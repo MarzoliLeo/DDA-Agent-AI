@@ -1,17 +1,22 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+using Mirror;
+using System;
 
-public class CheckpointTracker : MonoBehaviour
+public class CheckpointTracker : NetworkBehaviour
 {
     private Objective objective; // Riferimento all'oggetto Objective per accedere ai checkpoint
     private string agentUrl = "http://localhost:5000/api/agent/checkpoint";
+    public string playerId; // ID univoco del giocatore
+    private NetworkIdentity networkIdentity; // Riferimento al NetworkIdentity del giocatore
 
-    private int lastCheckpointCount = 0; // Traccia il numero di checkpoint raccolti
 
     void Start()
     {
-        objective = GetComponent<Objective>();
+        //if (!isLocalPlayer) return; // Assicurati che solo il client locale esegua questo codice
+
+        /*objective = GetComponent<Objective>();
         if (objective == null)
         {
             Debug.LogError("Objective component not found on the GameObject.");
@@ -19,31 +24,28 @@ public class CheckpointTracker : MonoBehaviour
         else
         {
             Debug.Log("Objective component found: " + objective.GetType().Name);
-            lastCheckpointCount = objective.NumberOfPickupsTotal; // Inizializza con il numero totale di checkpoint
-        }
+        }*/
+        
+    
     }
 
-    void Update()
+    // Metodo chiamato quando un checkpoint viene raccolto [src: TargetObject.cs].
+    public void OnCheckpointCollected(GameObject player)
     {
-        if (objective != null)
-        {
-            int remainingCheckpoints = objective.NumberOfPickupsRemaining;
 
-            // Calcola il numero di checkpoint raccolti
-            int currentCheckpointCount = objective.NumberOfPickupsTotal - remainingCheckpoints;
+        //if (!isLocalPlayer) return; // Assicurati che solo il client locale esegua questo codice
 
-            // Invia i dati solo se il numero di checkpoint raccolti è cambiato
-            if (currentCheckpointCount > lastCheckpointCount)
-            {
-                lastCheckpointCount = currentCheckpointCount;
-                StartCoroutine(SendCheckpointUpdate(currentCheckpointCount));
-            }
-        }
+        // Ottieni l'id del giocatore.
+        playerId = player.GetInstanceID().ToString("X");
+
+        StartCoroutine(SendCheckpointUpdate(playerId, 1)); //because in Flask they are summed up, so 1 by 1.
     }
 
-    IEnumerator SendCheckpointUpdate(int checkpointCount)
+    IEnumerator SendCheckpointUpdate(String playerId, int checkpointCount)
     {
-        string jsonPayload = "{\"checkpoints\": " + checkpointCount + "}";
+        // Include l'ID del giocatore nel payload JSON
+        string jsonPayload = "{\"player_id\": \"" + playerId + "\", \"checkpoints\": " + checkpointCount + "}";
+        Debug.Log("Sending this payload: " + jsonPayload);
 
         using (UnityWebRequest www = new UnityWebRequest(agentUrl, "POST"))
         {
@@ -65,4 +67,6 @@ public class CheckpointTracker : MonoBehaviour
         }
     }
 }
+
+
 
