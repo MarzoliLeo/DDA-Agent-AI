@@ -16,7 +16,6 @@ public class PickupObject : TargetObject
     [Tooltip("Destroy this gameobject after collectDuration seconds")]
     public float collectDuration = 0f;
 
-    private CheckpointTracker checkpointTracker;
 
 
     void Start() {
@@ -39,16 +38,6 @@ public class PickupObject : TargetObject
         Objective.OnUnregisterPickup(this);
 
         TimeManager.OnAdjustTime(TimeGained);
-
-        
-        checkpointTracker = FindObjectOfType<CheckpointTracker>();
-
-        if (checkpointTracker == null)
-        {
-            Debug.LogError("CheckpointTracker not found in the scene.");
-        }
-
-        checkpointTracker.OnCheckpointCollected(player);
 
         Destroy(gameObject, collectDuration);
     }
