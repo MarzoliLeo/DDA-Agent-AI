@@ -16,6 +16,10 @@ namespace Mirror
     [HelpURL("https://mirror-networking.gitbook.io/docs/components/network-manager")]
     public class NetworkManager : MonoBehaviour
     {
+        /// Section for Agent Communication:
+        public event Action<NetworkConnectionToClient> OnServerAddPlayerEvent;
+
+
         /// <summary>Enable to keep NetworkManager alive when changing scenes.</summary>
         // This should be set if your game has a single NetworkManager that exists for the lifetime of the process. If there is a NetworkManager in each scene, then this should not be set.</para>
         [Header("Configuration")]
@@ -1397,6 +1401,9 @@ namespace Mirror
             // => appending the connectionId is WAY more useful for debugging!
             player.name = $"{playerPrefab.name} [connId={conn.connectionId}]";
             NetworkServer.AddPlayerForConnection(conn, player);
+
+            // Let the CheckpointTracker know that a new player is being added.
+            OnServerAddPlayerEvent?.Invoke(conn);
         }
 
         /// <summary>Called on server when transport raises an exception. NetworkConnection may be null.</summary>
