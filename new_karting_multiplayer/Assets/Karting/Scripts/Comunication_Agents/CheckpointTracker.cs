@@ -5,6 +5,7 @@ using Mirror;
 using System;
 using KartGame.KartSystems;
 using System.Collections.Generic;
+using System.Linq;
 
 public class CheckpointTracker : NetworkBehaviour
 {
@@ -12,8 +13,9 @@ public class CheckpointTracker : NetworkBehaviour
     private string agentUrl = "http://localhost:5000/api/agent/checkpoint";
     private int checkpointCount = 0; // Contatore dei checkpoint raccolti
     private Dictionary<ArcadeKart, string> kartIdMap = new Dictionary<ArcadeKart, string>(); // Dizionario per mappare ogni kart con il suo ID
-
     private float lastUpdateTime = 0f;  // Per inviare aggiornamenti periodici
+    private Transform finishLineTransform; // Posizione del traguardo
+
 
     public override void OnStartServer()
     {
@@ -30,7 +32,6 @@ public class CheckpointTracker : NetworkBehaviour
     // Metodo chiamato quando viene aggiunto un giocatore (quando il prefab viene spawnato)
     private void OnPlayerAdded(NetworkConnectionToClient conn)
     {
-        Debug.Log("SERVER STARTEDDDDDD!!!!!!!");
         Debug.Log("Player added: " + conn.identity.gameObject.name);
         GameObject playerObject = conn.identity.gameObject;
         RegisterKart(playerObject);
@@ -56,7 +57,8 @@ public class CheckpointTracker : NetworkBehaviour
         //if (!isLocalPlayer) return; // Assicurati che solo il client locale esegua questo codice
 
         objective = FindObjectOfType<Objective>();
-        //ArcadeKart[] arcadeKarts = FindObjectsOfType<ArcadeKart>();
+        finishLineTransform = GameObject.FindGameObjectWithTag("StartFinishLine")?.transform; // Assicurati di avere un tag appropriato per il traguardo
+
         if (objective == null /*|| arcadeKarts.Length == 0*/)
         {
             Debug.LogError("Something's wrong with references not found on the GameObject.");
@@ -64,13 +66,6 @@ public class CheckpointTracker : NetworkBehaviour
         else
         {
             Debug.Log("Objective component found: " + objective.GetType().Name);
-            /*foreach (ArcadeKart kart in arcadeKarts)
-            {
-                string playerId = Guid.NewGuid().ToString(); // Genera un ID univoco per il giocatore
-                kartIdMap.Add(kart, playerId);
-                Debug.Log("Found Kart: " + kart.name + ", Assigned Player ID: " + playerId);
-            }*/
-
             checkpointCount = objective.NumberOfActivePickupsRemaining();
         }
     }
@@ -96,19 +91,42 @@ public class CheckpointTracker : NetworkBehaviour
         }
     }
 
-    void SendPlayerData(String playerId, ArcadeKart kart, int checkpointCount)
+   void SendPlayerData(string playerId, ArcadeKart kart, int checkpointCount)
     {
         // Recupera i dati dal kart
         ArcadeKart.Stats stats = kart.baseStats;
         float currentSpeed = kart.GetMaxSpeed();
-        bool isDrifting = kart.IsDrifting;
+        Vector3 kartPosition = kart.transform.position;
+        float distanceToFinish = Vector3.Distance(kartPosition, finishLineTransform.position);
+        
+        // Calcola la distanza dai kart davanti e dietro
+        float distanceToFront = float.MaxValue;
+        float distanceToBack = float.MaxValue;
+        List<ArcadeKart> allKarts = kartIdMap.Keys.ToList();
+        allKarts.Remove(kart);
+        foreach (var otherKart in allKarts)
+        {
+            float distance = Vector3.Distance(kartPosition, otherKart.transform.position);
+            // Supponiamo che il kart davanti sia più vicino al traguardo e il kart dietro sia più lontano
+            if (Vector3.Dot(kart.transform.forward, otherKart.transform.position - kartPosition) > 0)
+            {
+                distanceToFront = Mathf.Min(distanceToFront, distance);
+            }
+            else
+            {
+                distanceToBack = Mathf.Min(distanceToBack, distance);
+            }
+        }
+
+        // Calcola la posizione in classifica basata sulla distanza dal traguardo
+        int rank = 1 + kartIdMap.Keys.Count(k => Vector3.Distance(k.transform.position, finishLineTransform.position) < distanceToFinish);
 
         // Crea un payload JSON con i dati del kart
-        string jsonPayload = "{\"player_id\": \"" + playerId + "\", \"checkpoints\": " + checkpointCount +
-                             ", \"current_speed\": " + currentSpeed +
-                             ", \"top_speed\": " + stats.TopSpeed +
-                             ", \"acceleration\": " + stats.Acceleration +
-                             ", \"is_drifting\": " + isDrifting + "}";
+        string jsonPayload = $"{{\"player_id\": \"{playerId}\", \"checkpoints\": {checkpointCount}," +
+                             $" \"current_speed\": {currentSpeed}, \"top_speed\": {stats.TopSpeed}," +
+                             $" \"acceleration\": {stats.Acceleration}, \"position\": {{\"x\": {kartPosition.x}, \"y\": {kartPosition.y}, \"z\": {kartPosition.z}}}," +
+                             $" \"distance_to_front\": {distanceToFront}, \"distance_to_back\": {distanceToBack}," +
+                             $" \"rank\": {rank}, \"distance_to_finish\": {distanceToFinish}}}";
 
         Debug.Log("Sending this payload for Kart: " + kart.name + ": " + jsonPayload);
         StartCoroutine(SendDataToServer(jsonPayload));
@@ -134,12 +152,6 @@ public class CheckpointTracker : NetworkBehaviour
                 Debug.LogError("Error sending player data: " + www.error);
             }
         }
-    }
-
-    // Messaggio per quando un kart viene spawnato (necessario per la comunicazione di Mirror)
-    public struct AddKartMessage : NetworkMessage
-    {
-        public uint kartNetId;
     }
 }
 
