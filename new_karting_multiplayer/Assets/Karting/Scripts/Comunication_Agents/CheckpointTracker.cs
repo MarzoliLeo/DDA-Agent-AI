@@ -91,6 +91,25 @@ public class CheckpointTracker : NetworkBehaviour
         }
     }
 
+    //Metodo per aggiornare le statistiche del kart quando collide con un oggetto CrashObject.
+    public void OnKartCollisionWithCrashObject(GameObject kart)
+    {
+
+        if (kart == null) return;
+        Debug.Log("Kart collided with CrashObject: " + kart.name);
+        ArcadeKart arcadeKart = kart.GetComponentInParent<ArcadeKart>();
+        
+        ArcadeKart.Stats stats = arcadeKart.baseStats;
+        
+        // Aumentiamo la velocità massima come esempio
+        stats.TopSpeed += 3.0f;  // Aggiunge 5 unità alla velocità massima del kart
+        
+        // Aggiorna le statistiche del kart
+        arcadeKart.baseStats = stats;
+
+        Debug.Log($"Updated stats for Kart {arcadeKart.name}. New top speed: {arcadeKart.baseStats.TopSpeed}");
+    }
+
    void SendPlayerData(string playerId, ArcadeKart kart, int checkpointCount)
     {
         // Recupera i dati dal kart

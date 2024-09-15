@@ -29,12 +29,20 @@ public class CrashObject : TargetObject
         active = false;
         if (CollectVFX)
             CollectVFX.Play();
-               
+
         if (m_rigid) m_rigid.AddForce(forceUpOnCollide*Vector3.up, ForceMode.Impulse);
         
         Objective.OnUnregisterPickup(this);
 
         TimeManager.OnAdjustTime(TimeGained);
+
+
+        CheckpointTracker tracker = FindObjectOfType<CheckpointTracker>();
+        if (tracker != null)
+        {
+            tracker.OnKartCollisionWithCrashObject(other.gameObject);
+        }
+
     }
 
     private void OnTriggerEnter(Collider other)
