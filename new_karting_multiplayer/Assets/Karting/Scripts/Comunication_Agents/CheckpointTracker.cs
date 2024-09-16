@@ -9,12 +9,16 @@ using System.Linq;
 
 public class CheckpointTracker : NetworkBehaviour
 {
+    private const int MaxNumberOfPlayersInScene = 5;
     private Objective objective; // Riferimento all'oggetto Objective per accedere ai checkpoint
     private string agentUrl = "http://localhost:5000/api/agent/checkpoint";
     private int checkpointCount = 0; // Contatore dei checkpoint raccolti
     private Dictionary<ArcadeKart, string> kartIdMap = new Dictionary<ArcadeKart, string>(); // Dizionario per mappare ogni kart con il suo ID
     private float lastUpdateTime = 0f;  // Per inviare aggiornamenti periodici
     private Transform finishLineTransform; // Posizione del traguardo
+
+    //[SerializeField]
+    //private GameObject aiKartPrefab; // Riferimento pubblico al prefab del kart AI, da assegnare tramite l'Inspector
 
 
     public override void OnStartServer()
@@ -35,7 +39,23 @@ public class CheckpointTracker : NetworkBehaviour
         Debug.Log("Player added: " + conn.identity.gameObject.name);
         GameObject playerObject = conn.identity.gameObject;
         RegisterKart(playerObject);
+        AddAIKart();
     }
+
+
+    // Metodo per istanziare un kart controllato dall'AI
+    private void AddAIKart()
+    {
+        //Cerca tutti i kart AI presenti nella scena e li registra.
+        ArcadeKart[] aiKarts = GameObject.FindObjectsOfType<ArcadeKart>();
+        foreach (var entry in aiKarts)
+        {
+            RegisterKart(entry.gameObject);
+            Debug.Log("AI Kart added: " + entry.name);
+        }
+        
+    }
+
 
     private void RegisterKart(GameObject playerObject)
     {
@@ -173,6 +193,4 @@ public class CheckpointTracker : NetworkBehaviour
         }
     }
 }
-
-
 
