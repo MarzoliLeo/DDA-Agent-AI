@@ -11,15 +11,22 @@ public class CheckpointTracker : NetworkBehaviour
 {
     private const int MaxNumberOfPlayersInScene = 5;
     private Objective objective; // Riferimento all'oggetto Objective per accedere ai checkpoint
-    private string agentUrl = "http://localhost:5000/api/agent/checkpoint";
+    private string agentUrl = "http://localhost:5000/api/agent/data";
     private int checkpointCount = 0; // Contatore dei checkpoint raccolti
-    private Dictionary<ArcadeKart, string> kartIdMap = new Dictionary<ArcadeKart, string>(); // Dizionario per mappare ogni kart con il suo ID
+    public Dictionary<ArcadeKart, string> kartIdMap = new Dictionary<ArcadeKart, string>(); // Dizionario per mappare ogni kart con il suo ID
     private float lastUpdateTime = 0f;  // Per inviare aggiornamenti periodici
-    private Transform finishLineTransform; // Posizione del traguardo
+    public Transform finishLineTransform; // Posizione del traguardo
+    public static event Action OnCheckpointTrackerEnabled; //evento generato quando il CheckpointTracker viene attivato nella scena.
 
     //[SerializeField]
     //private GameObject aiKartPrefab; // Riferimento pubblico al prefab del kart AI, da assegnare tramite l'Inspector
 
+
+    void OnEnable()
+    {
+        // Lancia l'evento quando il CheckpointTracker viene attivato
+        OnCheckpointTrackerEnabled?.Invoke();
+    }
 
     public override void OnStartServer()
     {
