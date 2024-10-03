@@ -34,6 +34,12 @@ public class PickupObject : TargetObject
             var vfx = Instantiate(spawnPrefabOnPickup, CollectVFXSpawnPoint.position, Quaternion.identity);
             Destroy(vfx, destroySpawnPrefabDelay);
         }
+        
+        CheckpointTracker tracker = FindObjectOfType<CheckpointTracker>();
+        if (tracker != null)
+        {
+            tracker.OnKartCollisionWithPickupObject(player.gameObject);
+        }
     
         Objective.OnUnregisterPickup(this);
 

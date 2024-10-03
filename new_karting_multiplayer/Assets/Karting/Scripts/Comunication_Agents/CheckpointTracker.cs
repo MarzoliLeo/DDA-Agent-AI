@@ -9,10 +9,11 @@ using System.Linq;
 
 public class CheckpointTracker : NetworkBehaviour
 {
-    private const int MaxNumberOfPlayersInScene = 5;
+    private const float INCREMENT_VALUE = 3.0f;
     private Objective objective; // Riferimento all'oggetto Objective per accedere ai checkpoint
     private string agentUrl = "http://localhost:5000/api/agent/data";
     private int checkpointCount = 0; // Contatore dei checkpoint raccolti
+    private Dictionary<ArcadeKart, int> kartCheckpointMap = new Dictionary<ArcadeKart, int>(); // Mappa kart -> checkpoint raccolti
     public Dictionary<ArcadeKart, string> kartIdMap = new Dictionary<ArcadeKart, string>(); // Dizionario per mappare ogni kart con il suo ID
     private float lastUpdateTime = 0f;  // Per inviare aggiornamenti periodici
     public Transform finishLineTransform; // Posizione del traguardo
@@ -71,6 +72,7 @@ public class CheckpointTracker : NetworkBehaviour
         {
             string playerId = Guid.NewGuid().ToString(); // Genera un ID univoco per il giocatore
             kartIdMap.Add(kart, playerId);
+            kartCheckpointMap.Add(kart, 0);
             Debug.Log($"Kart {kart.name} registrato con ID: {playerId}");
         }
         else
@@ -104,17 +106,37 @@ public class CheckpointTracker : NetworkBehaviour
         // Esegui l'invio dei dati al server Flask ogni 5 secondi
         if (Time.time - lastUpdateTime > 5f)
         {
-            checkpointCount = objective.NumberOfPickupsTotal -  objective.NumberOfActivePickupsRemaining();
+            //checkpointCount = objective.NumberOfPickupsTotal -  objective.NumberOfActivePickupsRemaining();
             foreach (var entry in kartIdMap)
             {
                 ArcadeKart kart = entry.Key;
                 string playerId = entry.Value;
 
-                // Invia i dati del giocatore per ciascun kart
-                SendPlayerData(playerId, kart, checkpointCount);
+                // Esegui l'invio dei dati del giocatore al server Flask per ciascun kart
+                int kartCheckpointCount = kartCheckpointMap[kart]; // Numero di checkpoint per questo kart
+                SendPlayerData(playerId, kart, kartCheckpointCount);
+                //SendPlayerData(playerId, kart, checkpointCount);
             }
 
             lastUpdateTime = Time.time;
+        }
+    }
+
+    // Metodo modificato per incrementare solo il checkpoint del kart specifico
+    public void OnKartCollisionWithPickupObject(GameObject kart)
+    {
+        if (kart == null) return;
+
+        ArcadeKart arcadeKart = kart.GetComponentInParent<ArcadeKart>();
+        if (arcadeKart != null && kartCheckpointMap.ContainsKey(arcadeKart))
+        {
+            // Incrementa il contatore dei checkpoint solo per questo kart
+            kartCheckpointMap[arcadeKart]++;
+            Debug.Log($"Kart {arcadeKart.name} ha raccolto un checkpoint. Totale checkpoint: {kartCheckpointMap[arcadeKart]}");
+        }
+        else
+        {
+            Debug.LogWarning("Il kart non è registrato nel sistema.");
         }
     }
 
@@ -128,8 +150,8 @@ public class CheckpointTracker : NetworkBehaviour
         
         ArcadeKart.Stats stats = arcadeKart.baseStats;
         
-        // Aumentiamo la velocità massima come esempio
-        stats.TopSpeed += 3.0f;  // Aggiunge 5 unità alla velocità massima del kart
+        // Aumentiamo la velocità massima 
+        stats.TopSpeed += INCREMENT_VALUE;  
         
         // Aggiorna le statistiche del kart
         arcadeKart.baseStats = stats;
